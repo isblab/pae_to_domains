@@ -19,7 +19,7 @@ def domains_from_pae_matrix_label_propagation(
 
     #TODO: Add reference to the algorithm used.
 
-    Args:
+    ## Arguments:
 
     - **pae_matrix (np.ndarray)**:<br />
         PAE matrix.
@@ -28,12 +28,12 @@ def domains_from_pae_matrix_label_propagation(
         Each edge in the graph will be weighted proportional to (1/pae**pae_power).
 
     - **pae_cutoff (float, optional)**:<br />
-        Graph edges will only be created for residue pairs with `pae`<`pae_cutoff`.
+        Edges will be created for residue pairs satisfying: `pae`<`pae_cutoff`.
 
     - **random_seed (int, optional)**:<br />
         Random seed for the label propagation algorithm.
 
-    Returns:
+    ## Returns:
 
     - **clusters (list)**:<br />
         A list of lists, with each list containing the residues indices
@@ -62,7 +62,7 @@ def domains_from_pae_matrix_networkx(
     pae_cutoff: float = 5.0,
     graph_resolution:float = 1,
 ) -> list[list[int]]:
-    '''
+    """
     Takes a predicted aligned error (PAE) matrix representing the predicted
     error in distances between each pair of residues in a model, and uses a
     graph-based community clustering algorithm to partition the model
@@ -83,7 +83,7 @@ def domains_from_pae_matrix_networkx(
         Graph edges will only be created for residue pairs with `pae`<`pae_cutoff`.
 
     - **graph_resolution (float, optional)**:<br />
-        Regulates how aggressively the clustering algorithm is.
+        Regulates how aggressive the clustering algorithm is.
         Smaller values lead to larger clusters.
         > [!IMPORTANT]
         > `graph_resolution` should be larger than zero, and values larger than 5
@@ -94,7 +94,7 @@ def domains_from_pae_matrix_networkx(
     - **clusters (list)**:<br />
         A list of lists, with each list containing the residues indices
         belonging to one community.
-    '''
+    """
 
     weights = 1/pae_matrix**pae_power
 
@@ -127,7 +127,7 @@ def domains_from_pae_matrix_igraph(
     pae_cutoff: float = 5.0,
     graph_resolution:float = 1,
 ) -> list[list[int]]:
-    '''
+    """
     Takes a predicted aligned error (PAE) matrix representing the predicted
     error in distances between each pair of residues in a model, and uses a
     graph-based community clustering algorithm to partition the model
@@ -148,17 +148,18 @@ def domains_from_pae_matrix_igraph(
         Graph edges will only be created for residue pairs with `pae`<`pae_cutoff`.
 
     - **graph_resolution (float, optional)**:<br />
-        Regulates how aggressively the clustering algorithm is.
+        Regulates how aggressive the clustering algorithm is.
         Smaller values lead to larger clusters.
         > [!IMPORTANT]
         > `graph_resolution` should be larger than zero, and values larger than 5
         > are unlikely to be useful.
 
     Returns:
+
     - **clusters (list)**:<br />
         A list of lists, with each list containing the residues indices
         belonging to one community.
-    '''
+    """
 
     weights = 1/pae_matrix**pae_power
 
