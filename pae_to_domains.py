@@ -1,6 +1,10 @@
-# Author: Tristan Croll
-# Github: https://github.com/tristanic/pae_to_domains
-# Modified by OMG
+"""
+[pae_to_domains](https://github.com/isblab/af_pipeline/tree/main/af_pipeline/pae_to_domains/pae_to_domains.py)
+============================
+Author: Tristan Croll<br />
+Github: https://github.com/tristanic/pae_to_domains<br />
+Modified by OMG
+"""
 
 import igraph
 import numpy as np
@@ -17,7 +21,10 @@ def domains_from_pae_matrix_label_propagation(
     """ Takes a predicted aligned error (PAE) matrix and uses a fast label propagation
     clustering algorithm to partition the model into approximately rigid regions.
 
-    #TODO: Add reference to the algorithm used.
+    Refer to [^fast_label_propagation] for more details on the algorithm.
+
+    [^fast_label_propagation]: Traag, V.A., Šubelj, L. "Large network community detection by fast label propagation" (https://doi.org/10.1038/s41598-023-29610-z)
+
 
     ## Arguments:
 
@@ -25,10 +32,10 @@ def domains_from_pae_matrix_label_propagation(
         PAE matrix.
 
     - **pae_power (int, optional)**:<br />
-        Each edge in the graph will be weighted proportional to (1/pae**pae_power).
+        Each edge in the graph will be weighted proportional to (`1/pae**pae_power`).
 
     - **pae_cutoff (float, optional)**:<br />
-        Edges will be created for residue pairs satisfying: `pae`<`pae_cutoff`.
+        Edges will be created for residue pairs satisfying: `pae < pae_cutoff`.
 
     - **random_seed (int, optional)**:<br />
         Random seed for the label propagation algorithm.
@@ -68,7 +75,9 @@ def domains_from_pae_matrix_networkx(
     graph-based community clustering algorithm to partition the model
     into approximately rigid groups.
 
-    #TODO: Add reference to the algorithm used.
+    Refer to [^greedy_modularity_communities] for more details on the algorithm.
+
+    [^greedy_modularity_communities]: Clauset, A., Newman, M.E.J., Moore, C. "Finding community structure in very large networks" (https://doi.org/10.1103/PhysRevE.70.066111)
 
     Arguments:
 
@@ -133,7 +142,9 @@ def domains_from_pae_matrix_igraph(
     graph-based community clustering algorithm to partition the model
     into approximately rigid groups.
 
-    #TODO: Add reference to the algorithm used.
+    Refer to [^leiden_algorithm] for more details on the algorithm.
+
+    [^leiden_algorithm]: Traag, V.A., Waltman, L., van Eck, N.J. "From Louvain to Leiden: guaranteeing well-connected communities" (https://doi.org/10.1038/s41598-019-41695-z)
 
     Arguments:
 
