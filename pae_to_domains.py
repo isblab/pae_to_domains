@@ -7,6 +7,7 @@ Modified by OMG
 """
 
 import igraph
+import random
 import numpy as np
 import networkx as nx
 from collections import defaultdict
@@ -135,6 +136,7 @@ def domains_from_pae_matrix_igraph(
     pae_power: int = 1,
     pae_cutoff: float = 5.0,
     graph_resolution:float = 1,
+    random_seed:int = 47,
 ) -> list[list[int]]:
     """
     Takes a predicted aligned error (PAE) matrix representing the predicted
@@ -182,6 +184,7 @@ def domains_from_pae_matrix_igraph(
     g.add_edges(edges)
     g.es['weight']=sel_weights
 
+    igraph.set_random_number_generator(random.Random(random_seed))
     vc = g.community_leiden(
         weights='weight',
         resolution_parameter=graph_resolution/100,
