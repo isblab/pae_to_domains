@@ -12,6 +12,7 @@ import numpy as np
 import networkx as nx
 from collections import defaultdict
 from networkx.algorithms import community
+from af_pipeline.utils.misc_utils import symmetrize_matrix
 
 def domains_from_pae_matrix_label_propagation(
     pae_matrix: np.ndarray,
@@ -64,11 +65,76 @@ def domains_from_pae_matrix_label_propagation(
 
     return clusters
 
+def obtain_optimal_modularity_resolution(
+    G: nx.Graph,
+    partition: list[list[int]],
+    weight: str = 'weight'
+):
+    """ Obtain optimal resolution parameter as empirical estimate based on the
+    current partition of the graph.
+
+    Refer to Newman et al 2016 (https://arxiv.org/abs/1606.02319)
+
+    ## Arguments:
+
+    - **G (nx.Graph)**:<br />
+        The input graph.
+
+    - **partition (list[list[int]])**:<br />
+        The current partition of the graph.
+
+    - **weight (str, optional):**:<br />
+        The edge attribute to use as weight. Default is 'weight'.
+
+    ## Returns:
+
+    - **float**:<br />
+        The optimal resolution parameter.
+    """
+
+    graph_weight = G.size(weight=weight)
+    graph_weight = 2.0 * graph_weight
+    if graph_weight == 0:
+        return 1.0
+
+    strengths = dict(G.degree(weight=weight))
+
+    node_to_comm = {
+        node: idx for idx, comm in enumerate(partition) for node in comm
+    }
+    num_communities = len(partition)
+
+    sigma_r = np.zeros(num_communities)
+    for idx, community in enumerate(partition):
+        sigma_r[idx] = sum(strengths[node] for node in community)
+
+    W_in = sum(
+        data.get(weight, 1.0)
+        for u, v, data in G.edges(data=True)
+        if node_to_comm.get(u) == node_to_comm.get(v)
+    )
+
+    graph_weight_in = 2.0 * W_in
+    graph_weight_out = graph_weight - graph_weight_in
+
+    expected_int = np.sum(sigma_r ** 2) / graph_weight
+    expected_ext = graph_weight - expected_int
+
+    w_in = graph_weight_in / expected_int if expected_int > 0 else 0.0
+    w_out = graph_weight_out / expected_ext if expected_ext > 0 else 0.0
+
+    # Safeguard against unresolvable or uniform structures
+    if w_in <= 0 or w_out <= 0 or w_in == w_out:
+        return 1.0
+
+    return (w_in - w_out) / (np.log(w_in) - np.log(w_out))
+
 def domains_from_pae_matrix_networkx(
     pae_matrix: np.ndarray,
     pae_power: int = 1,
     pae_cutoff: float = 5.0,
-    graph_resolution:float = 1,
+    graph_resolution:float = 0.1,
+    find_optimal_resolution: bool = True,
 ) -> list[list[int]]:
     """
     Takes a predicted aligned error (PAE) matrix representing the predicted
@@ -99,6 +165,10 @@ def domains_from_pae_matrix_networkx(
         > `graph_resolution` should be larger than zero, and values larger than 5
         > are unlikely to be useful.
 
+    - **find_optimal_resolution (bool, optional)**:<br />
+        If True, the function will iteratively adjust the `graph_resolution`
+        parameter.
+
     Returns:
 
     - **clusters (list)**:<br />
@@ -106,6 +176,7 @@ def domains_from_pae_matrix_networkx(
         belonging to one community.
     """
 
+    pae_matrix = symmetrize_matrix(pae_matrix)
     weights = 1/pae_matrix**pae_power
 
     g = nx.Graph()
@@ -115,17 +186,54 @@ def domains_from_pae_matrix_networkx(
     sel_weights = weights[edges.T[0], edges.T[1]]
     wedges = [(i,j,w) for (i,j),w in zip(edges,sel_weights)]
     g.add_weighted_edges_from(wedges)
+    n_iter = 0
+    stop = False
 
-    clusters = community.greedy_modularity_communities(g, weight='weight', resolution=graph_resolution) # type: ignore
+    delta = 1e-3
+    clusters = community.greedy_modularity_communities(
+        g, weight='weight', resolution=graph_resolution
+    )
 
-    if isinstance(clusters, list):
-        clusters = [list(c) for c in clusters]
+    if not find_optimal_resolution:
+        if isinstance(clusters, list):
+            return [list(c) for c in clusters]
+        else:
+            raise ValueError(
+                f"""
+
+                Unexpected output type from community detection algorithm.
+                Expected a list of frozen sets, but got {type(clusters)}.
+                """
+            )
+
+    while not stop:
+        old_resolution = graph_resolution
+        graph_resolution = obtain_optimal_modularity_resolution(
+            G=g, partition=clusters, weight='weight'
+        )
+
+        Q = community.modularity(g, clusters, weight='weight', resolution=graph_resolution) # type: ignore
+
+        if abs(graph_resolution - old_resolution) < delta:
+            stop = True
+            print("Stopping due to convergence.")
+        else:
+            best_clusters = clusters
+
+        if n_iter > 10:
+            stop = True
+            print("Stopping due to too many iterations.")
+        else:
+            best_clusters = clusters
+
+    if isinstance(best_clusters, list):
+        clusters = [list(c) for c in best_clusters]
     else:
         raise ValueError(
             f"""
 
             Unexpected output type from community detection algorithm.
-            Expected a list of frozen sets, but got {type(clusters)}.
+            Expected a list of frozen sets, but got {type(best_clusters)}.
             """
         )
 
