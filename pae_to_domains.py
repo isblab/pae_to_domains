@@ -239,6 +239,35 @@ def domains_from_pae_matrix_networkx(
 
     return clusters
 
+def domains_from_pae_matrix_paris(
+    pae_matrix: np.ndarray,
+    pae_power: int = 1,
+    pae_cutoff: float = 5.0,
+) -> list[list[int]]:
+
+    from python_paris import paris
+    from python_paris.homogeneous_cut_slicer import (
+        clustering_from_homogeneous_cut,
+        best_homogeneous_cut,
+    )
+
+    pae_matrix = symmetrize_matrix(pae_matrix)
+    weights = 1/pae_matrix**pae_power
+
+    g = nx.Graph()
+    size = weights.shape[0]
+    g.add_nodes_from(range(size))
+    edges = np.argwhere(pae_matrix < pae_cutoff)
+    sel_weights = weights[edges.T[0], edges.T[1]]
+    wedges = [(i,j,w) for (i,j),w in zip(edges,sel_weights)]
+    g.add_weighted_edges_from(wedges)
+
+    dendrogram = paris(g)
+    best_cluster, _ = best_homogeneous_cut(dendrogram)
+    clusters = clustering_from_homogeneous_cut(dendrogram, best_cluster)
+
+    return clusters
+
 def domains_from_pae_matrix_igraph(
     pae_matrix: np.ndarray,
     pae_power: int = 1,
